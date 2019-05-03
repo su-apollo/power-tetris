@@ -1,9 +1,13 @@
+$backGroundColor = $Host.UI.RawUI.BackgroundColor;
+
 $point = New-Object Management.Automation.Host.Coordinates;
 
 [Boolean[][]]$current = @()
 
-$minoWidth = 4
-$minoHeight = 4
+$minoX = 0
+$minoY = 0
+$minoW = 4
+$minoH = 4
 
 $I = '
 0000
@@ -71,7 +75,7 @@ function NewTetroMino($type) {
             $mino[$x][$y] = $true
         }
         $x++
-        if($x -gt $script:minoWidth) {
+        if($x -gt $script:minoW) {
             $x = 0
             $y++
         } 
@@ -85,7 +89,29 @@ function Draw($x, $y, $buffer) {
     $Host.UI.RawUI.SetBufferContents($script:point, $buffer)
 }
 
+function GetEvent() {
+    $e = 0;
+
+    if ($Host.UI.RawUi.KeyAvailable){ 
+        $key = $Host.UI.RawUI.ReadKey("NoEcho, IncludeKeyUp");
+        
+        $e = switch($key.VirtualKeyCode){
+            # q
+            81 { -1 }
+            # space
+            32 { 32 }
+            # arrow key
+            {(37..40) -contains $_ } {$key.VirtualKeyCode} 
+            # do nothing
+            default { 0 } 
+        }
+    }
+
+    return $e
+}
+
 function main() {    
+    Clear-Host
     $script:current = NewTetroMino($L)
 
     $frame = New-Object Management.Automation.Host.Rectangle;
@@ -110,13 +136,23 @@ function main() {
         }
 
         $x++
-        if($x -gt $script:minoWidth) {
+        if($x -gt $script:minoW) {
             $x = 0
             $y++
         } 
     }
 
-    Draw 0 0 $buffer
+    do {
+        $code = GetEvent
+    
+        switch($code) {
+            default {}
+        }
+
+        Draw 0 0 $buffer
+
+        Start-Sleep -m 10
+    } until($code -eq -1)
 }
 
 . main
