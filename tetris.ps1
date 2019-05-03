@@ -1,86 +1,157 @@
+# Draw
 $backGroundColor = $Host.UI.RawUI.BackgroundColor;
-
 $point = New-Object Management.Automation.Host.Coordinates;
 
-[Boolean[][]]$current = @()
+# Game
+$now = @()
+$next = @()
 
+# Tetromino
 $minoX = 0
 $minoY = 0
 $minoW = 4
 $minoH = 4
 
-$I = '
-0000
-1111
-0000
-0000
-'
+# Board
+$boardX = 0
+$boardY = 0
+$boardW = 16
+$boardH = 20
 
-$J = '
-1000
-1110
-0000
-0000
-'
+# Const
+$I = 0
+$J = 1
+$L = 2
+$O = 3
+$S = 4
+$T = 5
+$Z = 6
 
-$S = '
-0110
-1100
-0000
-0000
-'
+<#
+OOOO
+XXXX
+OOOO
+OOOO
+#>
+$I0 = 'OOOOXXXXOOOOOOOO'
+$I1 = 'OOXOOOXOOOXOOOXO'
+$I2 = 'OOOOOOOOXXXXOOOO'
+$I3 = 'OXOOOXOOOXOOOXOO'
 
-$Z = '
-1100
-0110
-0000
-0000
-'
+<#
+XOOO
+XXXO
+OOOO
+OOOO
+#>
+$J0 = 'XOOOXXXOOOOOOOOO'
+$J1 = 'OXXOOXOOOXOOOOOO'
+$J2 = 'OOOOXXXOOOXOOOOO'
+$J3 = 'OXOOOXOOXXOOOOOO'
 
-$T = '
-0100
-1110
-0000
-0000
-'
+<#
+OOXO
+XXXO
+OOOO
+OOOO
+#>
+$L0 = 'OOXOXXXOOOOOOOOO'
+$L1 = 'OXOOOXOOOXXOOOOO'
+$L2 = 'OOOOXXXOXOOOOOOO'
+$L3 = 'XXOOOXOOOXOOOOOO'
 
-$O = '
-0110
-0110
-0000
-0000
-'
+<#
+OXXO
+OXXO
+OOOO
+OOOO
+#>
+$O0 = 'OXXOOXXOOOOOOOOO'
 
-$L = '
-0010
-1110
-0000
-0000
-'
+<#
+OXXO
+XXOO
+OOOO
+OOOO
+#>
+$S0 = 'OXXOXXOOOOOOOOOO'
+$S1 = 'OXOOOXXOOOXOOOOO'
+$S2 = 'OOOOOXXOXXOOOOOO'
+$S3 = 'XOOOXXOOOXOOOOOO'
 
-function NewTetroMino($type) {
-    [Boolean[][]]$mino = @(
-        ($false, $false, $false, $false),
-        ($false, $false, $false, $false),
-        ($false, $false, $false, $false),
-        ($false, $false, $false, $false)
-    )
-    
+<#
+OXOO
+XXXO
+OOOO
+OOOO
+#>
+$T0 = 'OXOOXXXOOOOOOOOO'
+$T1 = 'OXOOOXXOOXOOOOOO'
+$T2 = 'OOOOXXXOOXOOOOOO'
+$T3 = 'OXOOXXOOOXOOOOOO'
+
+<#
+OXXO
+OOXX
+OOOO
+OOOO
+#>
+$Z0 = 'XXOOOXXOOOOOOOOO'
+$Z1 = 'OOXOOXXOOXOOOOOO'
+$Z2 = 'OOOOXXOOOXXOOOOO'
+$Z3 = 'OXOOXXOOXOOOOOOO'
+
+$shapes = @(
+    ($I0, $I1, $I2, $I3),
+    ($J0, $J1, $J2, $J3),
+    ($L0, $L1, $L2, $L3),
+    ($O0, $O0, $O0, $O0),
+    ($S0, $S1, $S2, $S3),
+    ($T0, $T1, $T2, $T3),
+    ($Z0, $Z1, $Z2, $Z3)
+)
+
+function NewTetromino($type) {
+    $shape = $script:shapes[$type][0]
+
+    #Write-Host $shape
+    $mino = @()
+
+    $i = 0
+    for($y = 0; $y -lt $script:minoH; $y++) {
+        for($x = 0; $x -lt $script:minoW; $x++) {
+            if($shape[$i] -eq 'X') {
+                $mino += $true
+            } else {
+                $mino += $false
+            }
+            $i++
+        }
+    }
+
+    return $mino
+}
+
+function DrawBoard() {    
+}
+
+function DrawNow() {
     $x = 0
     $y = 0
-    foreach($c in $type) {
-        if($c -eq '0') {
-            $mino[$x][$y] = $false
-        } else {
-            $mino[$x][$y] = $true
+    foreach($c in $script:now) {
+        if($c -eq $true) {
+            $cell = $script:buffer[$y, $x]
+            $cell.Character = "@"
+            $cell.ForegroundColor = [System.ConsoleColor]::Magenta
+            $script:buffer[$y, $x] = $cell
         }
+
         $x++
-        if($x -gt $script:minoW) {
+        if($x -ge $script:minoW) {
             $x = 0
             $y++
         } 
     }
-    return $mino
 }
 
 function Draw($x, $y, $buffer) {
@@ -111,36 +182,17 @@ function GetEvent() {
 }
 
 function main() {    
-    Clear-Host
-    $script:current = NewTetroMino($L)
+    $script:now = NewTetromino($L)
 
+    Clear-Host
     $frame = New-Object Management.Automation.Host.Rectangle;
-    $size = $host.ui.rawui.WindowSize;
+    $windowSize = $host.ui.rawui.WindowSize;
     $frame.Left = 0
     $frame.Top = 0
-    $frame.Right = $size.Width
-    $frame.Bottom = $size.Height
-    $frameBuffer = $Host.UI.RawUI.GetBufferContents($frame)
-    $buffer = $frameBuffer.Clone();
-
-    $x = 0
-    $y = 0
-    foreach($c in $script:current) {
-        if($c) {
-            $cell = $buffer[$y, $x]
-            $cell.Character = "@"
-            $cell.ForegroundColor = [System.ConsoleColor]::Magenta
-            $buffer[$y, $x] = $cell
-
-            #Write-Output "test"
-        }
-
-        $x++
-        if($x -gt $script:minoW) {
-            $x = 0
-            $y++
-        } 
-    }
+    $frame.Right = $windowSize.Width
+    $frame.Bottom = $windowSize.Height
+    $script:frameBuffer = $Host.UI.RawUI.GetBufferContents($frame)
+    $script:buffer = $frameBuffer.Clone()
 
     do {
         $code = GetEvent
@@ -149,10 +201,13 @@ function main() {
             default {}
         }
 
+        DrawNow
         Draw 0 0 $buffer
 
         Start-Sleep -m 10
     } until($code -eq -1)
+
+    Clear-Host
 }
 
 . main
