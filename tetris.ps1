@@ -413,7 +413,15 @@ function main() {
             # down
             40 { $script:nowY++ }
             # drop
-            32 { $drop = $true }
+            32 {
+                $result = Write-NowTetromino
+                while($result){
+                    $script:nowY++
+                    $result = Write-NowTetromino
+                }
+                $script:nowY--
+                $drop = $true
+            }
             default {}
         }
 
@@ -422,33 +430,23 @@ function main() {
             Reset-Variable
         }
 
-        if ($drop) {
+        $elapsed = ((Get-Date).Subtract($startTime)).TotalMilliseconds
+        if(($elapsed -ge $script:step) -OR $drop) {
+            $startTime = Get-Date
+            $script:nowY++
+
             $result = Write-NowTetromino
-            while($result){
-                $script:nowY++
-                $result = Write-NowTetromino
-            }
-            $script:nowY--
-            $startTime += $script:step
-        } else {
-            $elapsed=((Get-Date).Subtract($startTime)).TotalMilliseconds
-            if($elapsed -ge $script:step) {
-                $startTime = Get-Date
-                $script:nowY++
-    
+            if(!$result) {
+                $script:nowY--
+                Update-GroundBuffer
+                $line = Clear-Line
+                if($line -gt 0) {
+                    Update-GroundBuffer
+                }
+                Set-NextTetormino
                 $result = Write-NowTetromino
                 if(!$result) {
-                    $script:nowY--
-                    Update-GroundBuffer
-                    $line = Clear-Line
-                    if($line -gt 0) {
-                        Update-GroundBuffer
-                    }
-                    Set-NextTetormino
-                    $result = Write-NowTetromino
-                    if(!$result) {
-                        break
-                    }
+                    break
                 }
             }
         }
