@@ -3,33 +3,39 @@ $windowSize = $host.ui.rawui.WindowSize;
 $backGroundColor = $Host.UI.RawUI.BackgroundColor;
 $point = New-Object Management.Automation.Host.Coordinates;
 
-# Border
-$borderX = 0
-$borderY = 0
-$borderW = 16
-$borderH = 20
+# Ground
+$groundX = 0
+$groundY = 0
+$groundW = 16
+$groundH = 20
+
+$groundBuffer = $null
+$groundFrame = New-Object Management.Automation.Host.Rectangle;
+$groundFrame.Left = $groundX
+$groundFrame.Top = $groundY
+$groundFrame.Right = $groundX + $groundW
+$groundFrame.Bottom = $groundY + $groundH
 
 # Tetromino
-$minoX = $borderX + ($borderW / 2) - 2
-$minoY = $borderY + 1
+$minoX = $groundX + ($groundW / 2) - 2
+$minoY = $groundY + 1
 $minoW = 4
 $minoH = 4
 
 # Game
+$step = 400;
+
 $nowShape = 0
-$nowBuffer = $null
 $nowX = $minoX
 $nowY = $minoY
 $rotation = 0
+$prevNowX = $nowX
+$prevNowY = $nowY
+$prevRotation = $rotation
 
-$minoFrame = New-Object Management.Automation.Host.Rectangle;
-$minoFrame.Left = $minoX
-$minoFrame.Top = $minoY
-$minoFrame.Right = $minoX + $minoW
-$minoFrame.Bottom = $minoY + $minoH
-
+$nextShape = 0
 $nextBuffer = $null
-$nextX = $borderX + $borderW + 4
+$nextX = $groundX + $groundW + 4
 $nextY = 4
 
 $gameFrame = New-Object Management.Automation.Host.Rectangle;
@@ -49,79 +55,139 @@ $Z = 6
 $maxShape = 6
 $maxRotation = 4
 
-<#
-    
-@@@@
-    
-    
-#>
-$I0 = @('    ', '@@@@', '    ', '    ')
-$I1 = @('  @ ', '  @ ', '  @ ', '  @ ')
-$I2 = @('    ', '    ', '@@@@', '    ')
-$I3 = @(' @  ', ' @  ', ' @  ', ' @  ')
+$minoChar = '@'
 
-<#
-@   
-@@@ 
-    
-    
-#>
-$J0 = @('@   ', '@@@ ', '    ', '    ')
-$J1 = @(' @@ ', ' @  ', ' @  ', '    ')
-$J2 = @('    ', '@@@ ', '  @ ', '    ')
-$J3 = @(' @  ', ' @  ', '@@  ', '    ')
+$I0 = @(
+    '    ', 
+    '@@@@', 
+    '    ', 
+    '    ')
+$I1 = @(
+    '  @ ', 
+    '  @ ', 
+    '  @ ', 
+    '  @ ')
+$I2 = @(
+    '    ', 
+    '    ', 
+    '@@@@', 
+    '    ')
+$I3 = @(
+    ' @  ', 
+    ' @  ', 
+    ' @  ', 
+    ' @  ')
 
-<#
-  @ 
-@@@ 
-    
-    
-#>
-$L0 = @('  @ ', '@@@ ', '    ', '    ')
-$L1 = @(' @  ', ' @  ', ' @@ ', '    ')
-$L2 = @('    ', '@@@ ', '@   ', '    ')
-$L3 = @('@@  ', ' @  ', ' @  ', '    ')
+$J0 = @(
+    '@   ', 
+    '@@@ ', 
+    '    ', 
+    '    ')
+$J1 = @(
+    ' @@ ', 
+    ' @  ', 
+    ' @  ', 
+    '    ')
+$J2 = @(
+    '    ', 
+    '@@@ ', 
+    '  @ ', 
+    '    ')
+$J3 = @(
+    ' @  ', 
+    ' @  ', 
+    '@@  ', 
+    '    ')
 
-<#
- @@ 
- @@ 
-    
-    
-#>
-$O0 = @(' @@ ', ' @@ ', '    ', '    ')
+$L0 = @(
+    '  @ ', 
+    '@@@ ', 
+    '    ', 
+    '    ')
+$L1 = @(
+    ' @  ', 
+    ' @  ', 
+    ' @@ ', 
+    '    ')
+$L2 = @(
+    '    ', 
+    '@@@ ', 
+    '@   ', 
+    '    ')
+$L3 = @(
+    '@@  ', 
+    ' @  ', 
+    ' @  ', 
+    '    ')
 
-<#
- @@ 
-@@  
-    
-    
-#>
-$S0 = @(' @@ ', '@@  ', '    ', '    ')
-$S1 = @(' @  ', ' @@ ', '  @ ', '    ')
-$S2 = @('    ', ' @@ ', '@@  ', '    ')
-$S3 = @('@   ', '@@  ', ' @  ', '    ')
+$O0 = @(
+    ' @@ ', 
+    ' @@ ', 
+    '    ', 
+    '    ')
 
-<#
- @  
-@@@ 
-    
-    
-#>
-$T0 = @(' @  ', '@@@ ', '    ', '    ')
-$T1 = @(' @  ', ' @@ ', ' @  ', '    ')
-$T2 = @('    ', '@@@ ', ' @  ', '    ')
-$T3 = @(' @  ', '@@  ', ' @  ', '    ')
+$S0 = @(
+    ' @@ ', 
+    '@@  ', 
+    '    ', 
+    '    ')
+$S1 = @(
+    ' @  ', 
+    ' @@ ', 
+    '  @ ', 
+    '    ')
+$S2 = @(
+    '    ', 
+    ' @@ ', 
+    '@@  ', 
+    '    ')
+$S3 = @(
+    '@   ', 
+    '@@  ', 
+    ' @  ', 
+    '    ')
 
-<#
- @@ 
-  @@
-    
-    
-#>
-$Z0 = @('@@  ', ' @@ ', '    ', '    ')
-$Z1 = @('  @ ', ' @@ ', ' @  ', '    ')
-$Z2 = @('    ', '@@  ', ' @@ ', '    ')
-$Z3 = @(' @  ', '@@  ', '@   ', '    ')
+$T0 = @(
+    ' @  ', 
+    '@@@ ', 
+    '    ', 
+    '    ')
+$T1 = @(
+    ' @  ', 
+    ' @@ ', 
+    ' @  ', 
+    '    ')
+$T2 = @(
+    '    ', 
+    '@@@ ', 
+    ' @  ', 
+    '    ')
+$T3 = @(
+    ' @  ', 
+    '@@  ', 
+    ' @  ', 
+    '    ')
+
+$Z0 = @(
+    '@@  ', 
+    ' @@ ', 
+    '    ', 
+    '    ')
+$Z1 = @(
+    '  @ ', 
+    ' @@ ', 
+    ' @  ', 
+    '    ')
+$Z2 = @(
+    '    ', 
+    '@@  ', 
+    ' @@ ', 
+    '    ')
+$Z3 = @(
+    ' @  ', 
+    '@@  ', 
+    '@   ', 
+    '    ')
 
 $shapes = @(
     ($I0, $I1, $I2, $I3),
@@ -151,48 +217,95 @@ function Update-NowTetromino($shape) {
 }
 
 function Update-NextTetromino($shape) {
+    $script:nextShape = $shape
     $mino = $script:shapes[$shape][0]
     $color = $script:colors[$shape]
 
     $script:nextBuffer = $Host.UI.RawUI.NewBufferCellArray($mino, $color, $script:backGroundColor)
 }
 
+function Set-NextTetormino() {
+    Update-NowTetromino $script:nextShape
+
+    $rand = Get-random $script:maxShape
+    Update-NextTetromino $rand
+
+    Write-NextTetromino
+}
+
+function Update-GroundBuffer() {
+    $script:groundBuffer = $Host.UI.RawUI.GetBufferContents($script:groundFrame)
+}
+
+function Set-PrevVariable() { 
+    $script:prevNowX = $script:nowX
+    $script:prevNowY = $script:nowY
+    $script:prevRotation = $script:rotation
+}
+
+function Reset-Variable() {
+    $script:nowX = $script:prevNowX
+    $script:nowY = $script:prevNowY
+    $script:rotation = $script:prevRotation
+}
+
 function Write-Border() {
     [String[]]$border = @();
     
-    $line1 = "|"; 
-    $line2 = "O";
-    1..$borderW | ForEach-Object { $line1 += " "; $line2 += "="; }
-    $line1 += "|"; 
-    $line2 += "O";
+    $line1 = '|' 
+    $line2 = 'O'
+    1..$groundW | ForEach-Object { $line1 += ' '; $line2 += '=' }
+    $line1 += '|' 
+    $line2 += 'O'
 
-    $border += $line2;
-    1..$borderH | ForEach-Object { $border += $line1; }
-    $border += $line2;
+    $border += $line2
+    1..$groundH | ForEach-Object { $border += $line1 }
+    $border += $line2
 
-    $buffer = $Host.UI.RawUI.NewBufferCellArray($border, [system.consolecolor]::Green, $script:backGroundColor);
+    $buffer = $Host.UI.RawUI.NewBufferCellArray($border, [system.consolecolor]::Green, $script:backGroundColor)
 
-    Write-Buffer $borderX $borderY $buffer
+    Write-Buffer $groundX $groundY $buffer
 }
 
 function Write-NextTetromino() {
     Write-Buffer $script:nextX $script:nextY $script:nextBuffer
 }
 
-function Test-Collision() {
-}
-
 function Update-Rotation() {
     $script:rotation = ($script:rotation + 1) % $script:maxRotation
+}
+
+function Clear-Line() {
+
 }
 
 function Write-NowTetromino() {
     $shape = $script:shapes[$script:nowShape][$script:rotation]
     $color = $script:colors[$script:nowShape]
+    $buffer = $script:groundBuffer.Clone()
 
-    $script:nowBuffer = $Host.UI.RawUI.NewBufferCellArray($shape, $color, $script:backGroundColor)
+    foreach($y in 0..($script:minoH - 1)) {
+        foreach($x in 0..($script:minoW - 1)) {
+            $char = $shape[$y][$x]
 
-    Write-Buffer $script:nowX $script:nowY $script:nowBuffer
+            if($char -eq $script:minoChar) {
+                $pointX = $script:nowX + $x
+                $pointY = $script:nowY + $y
+
+                $cell = $buffer[$pointY, $pointX]
+                if($cell.Character -ne ' ') {
+                    return $false
+                }                
+
+                $cell.Character = $char
+                $cell.ForegroundColor = $color
+                $buffer[$pointY, $pointX] = $cell
+            }
+        }
+    }
+
+    Write-Buffer $script:groundX $script:groundY $buffer
+    return $true
 }
 
 function Write-Buffer($x, $y, $buffer) {
@@ -219,7 +332,7 @@ function Get-GameEvent() {
             81 { -1 }
             # space
             32 { 32 }
-            # arrow key
+            # arrow keys
             {(37..40) -contains $_ } {$key.VirtualKeyCode} 
             # do nothing
             default { 0 } 
@@ -240,14 +353,19 @@ function Start-NewGame() {
     Update-NextTetromino $rand
 
     Write-NextTetromino
+
+    Update-GroundBuffer
 }
 
 function main() {    
     Start-NewGame
+    $startTime = Get-Date
 
     do {
+        Set-PrevVariable
         $code = Get-GameEvent
         
+        $drop = $false
         switch($code) {
             # right
             39 { $script:nowX++ }
@@ -256,13 +374,44 @@ function main() {
             # up
             38 { Update-Rotation }
             # down
-            40 {}
+            40 { $script:nowY++ }
             # drop
-            32 {}
+            32 { $drop = $true }
             default {}
         }
 
-        Write-NowTetromino
+        $result = Write-NowTetromino
+        if(!$result) {
+            Reset-Variable
+        }
+
+        if ($drop) {
+            $result = Write-NowTetromino
+            while($result){
+                $script:nowY++
+                $result = Write-NowTetromino
+            }
+            $script:nowY--            
+            
+        } else {
+            $elapsed=((Get-Date).Subtract($startTime)).TotalMilliseconds
+            if($elapsed -ge $script:step) {
+                $startTime = Get-Date
+                $script:nowY++
+    
+                $result = Write-NowTetromino
+                if(!$result) {
+                    $script:nowY--
+                    Update-GroundBuffer
+                    Clear-Line
+                    Set-NextTetormino
+                    $result = Write-NowTetromino
+                    if(!$result) {
+                        break
+                    }
+                }
+            }
+        }
 
         Start-Sleep -m 10
     } until($code -eq -1)
