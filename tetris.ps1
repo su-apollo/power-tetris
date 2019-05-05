@@ -1,11 +1,11 @@
-# Out
+# Host
 $windowSize = $host.ui.rawui.WindowSize;
 $backGroundColor = $Host.UI.RawUI.BackgroundColor;
 $point = New-Object Management.Automation.Host.Coordinates;
 
 # Ground
-$groundX = 0
-$groundY = 0
+$groundX = 1
+$groundY = 1
 $groundW = 16
 $groundH = 20
 
@@ -16,9 +16,11 @@ $groundFrame.Top = $groundY
 $groundFrame.Right = $groundX + $groundW
 $groundFrame.Bottom = $groundY + $groundH
 
+$borderColor = [system.consolecolor]::Magenta
+
 # Tetromino
 $minoX = $groundX + ($groundW / 2) - 2
-$minoY = $groundY + 1
+$minoY = $groundY
 $minoW = 4
 $minoH = 4
 
@@ -253,18 +255,25 @@ function Write-Border() {
     [String[]]$border = @();
     
     $line1 = '|' 
-    $line2 = 'O'
-    1..$groundW | ForEach-Object { $line1 += ' '; $line2 += '=' }
+    $line2 = 'O'    
+    1..$groundW | ForEach-Object { 
+        $line1 += ' ' 
+        $line2 += '=' 
+    }    
     $line1 += '|' 
     $line2 += 'O'
 
     $border += $line2
-    1..$groundH | ForEach-Object { $border += $line1 }
+    1..$groundH | ForEach-Object { 
+        $border += $line1 
+    }
     $border += $line2
 
-    $buffer = $Host.UI.RawUI.NewBufferCellArray($border, [system.consolecolor]::Green, $script:backGroundColor)
+    $buffer = $Host.UI.RawUI.NewBufferCellArray($border, $script:borderColor, $script:backGroundColor)
 
-    Write-Buffer $groundX $groundY $buffer
+    $x = $groundX - 1
+    $y = $groundY - 1
+    Write-Buffer $x $y $buffer
 }
 
 function Write-NextTetromino() {
@@ -276,7 +285,35 @@ function Update-Rotation() {
 }
 
 function Clear-Line() {
+    $count = 0
+    $buffer = $script:groundBuffer.Clone()
 
+    foreach($y in ($script:groundH - 1)..0) {
+        $fill = $true
+
+        foreach($x in 0..($script:groundW - 1)) {
+            $cell = $buffer[$y, $x]
+
+            if($cell.Character -ne $script:minoChar) {
+                $fill = $false
+                break
+            }
+        }
+
+        if($fill) {
+            $count++
+            foreach($i in $y..1) {
+                foreach($x in 0..($script:groundW - 1)) {
+                    $upper = $i - 1                    
+                    $cell = $buffer[$upper, $x]
+                    $buffer[$i, $x] = $cell
+                }
+            }
+        }
+    }
+
+    Write-Buffer $script:groundX $script:groundY $buffer
+    return $count
 }
 
 function Write-NowTetromino() {
@@ -289,13 +326,13 @@ function Write-NowTetromino() {
             $char = $shape[$y][$x]
 
             if($char -eq $script:minoChar) {
-                $pointX = $script:nowX + $x
-                $pointY = $script:nowY + $y
+                $pointX = $script:nowX - $script:groundX + $x
+                $pointY = $script:nowY - $script:groundY + $y
 
                 $cell = $buffer[$pointY, $pointX]
                 if($cell.Character -ne ' ') {
                     return $false
-                }                
+                }
 
                 $cell.Character = $char
                 $cell.ForegroundColor = $color
@@ -391,8 +428,8 @@ function main() {
                 $script:nowY++
                 $result = Write-NowTetromino
             }
-            $script:nowY--            
-            
+            $script:nowY--
+            $startTime += $script:step
         } else {
             $elapsed=((Get-Date).Subtract($startTime)).TotalMilliseconds
             if($elapsed -ge $script:step) {
@@ -403,7 +440,10 @@ function main() {
                 if(!$result) {
                     $script:nowY--
                     Update-GroundBuffer
-                    Clear-Line
+                    $line = Clear-Line
+                    if($line -gt 0) {
+                        Update-GroundBuffer
+                    }
                     Set-NextTetormino
                     $result = Write-NowTetromino
                     if(!$result) {
