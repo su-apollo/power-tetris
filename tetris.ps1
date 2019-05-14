@@ -1,11 +1,38 @@
+$logo = @(
+'          _          _            _             _            _     ', 
+'        /\ \       /\ \         / /\      _   /\ \         /\ \    ',
+'       /  \ \     /  \ \       / / /    / /\ /  \ \       /  \ \   ',
+'      / /\ \ \   / /\ \ \     / / /    / / // /\ \ \     / /\ \ \  ',
+'     / / /\ \_\ / / /\ \ \   / / /_   / / // / /\ \_\   / / /\ \_\ ',
+'    / / /_/ / // / /  \ \_\ / /_//_/\/ / // /_/_ \/_/  / / /_/ / / ',
+'   / / /__\/ // / /   / / // _______/\/ // /____/\    / / /__\/ /  ',
+'  / / /_____// / /   / / // /  \____\  // /\____\/   / / /_____/   ',
+' / / /      / / /___/ / //_/ /\ \ /\ \// / /______  / / /\ \ \     ',
+'/ / /      / / /____\/ / \_\//_/ /_/ // / /_______\/ / /  \ \ \    ',
+'\/_/       \/_________/      \_\/\_\/ \/__________/\/_/    \_\/    ',
+'       _            _          _          _         _              ',
+'      /\ \         /\ \       /\ \       /\ \      / /\            ',
+'      \_\ \       /  \ \      \_\ \      \ \ \    / /  \           ',
+'      /\__ \     / /\ \ \     /\__ \     /\ \_\  / / /\ \__        ',
+'     / /_ \ \   / / /\ \_\   / /_ \ \   / /\/_/ / / /\ \___\       ',
+'    / / /\ \ \ / /_/_ \/_/  / / /\ \ \ / / /    \ \ \ \/___/       ',
+'   / / /  \/_// /____/\    / / /  \/_// / /      \ \ \             ',
+'  / / /      / /\____\/   / / /      / / /   _    \ \ \            ',
+' / / /      / / /______  / / /   ___/ / /__ /_/\__/ / /            ',
+'/_/ /      / / /_______\/_/ /   /\__\/_/___\\ \/___/ /             ',
+'\_\/       \/__________/\_\/    \/_________/ \_____\/              '
+)
+
 # Host
+$speaker = New-Object -ComObject "SAPI.SpVoice";
+$voices = $speaker.GetVoices();
 $windowSize = $host.ui.rawui.WindowSize;
 $backGroundColor = $Host.UI.RawUI.BackgroundColor;
 $point = New-Object Management.Automation.Host.Coordinates;
 
 # Ground
-$groundX = 1
-$groundY = 1
+$groundX = 10
+$groundY = 5
 $groundW = 16
 $groundH = 20
 
@@ -38,7 +65,7 @@ $prevRotation = $rotation
 $nextShape = 0
 $nextBuffer = $null
 $nextX = $groundX + $groundW + 4
-$nextY = 4
+$nextY = 9
 
 $gameFrame = New-Object Management.Automation.Host.Rectangle;
 $gameFrame.Left = 0
@@ -394,7 +421,30 @@ function Start-NewGame() {
     Update-GroundBuffer
 }
 
+function Speak([Int32]$index, [Int32]$rate, [String]$words){
+    $script:speaker.Rate = $rate;
+    $script:speaker.Voice = $voices.Item($index);
+    $color = switch($index){0 {"Red"} default {"Yellow"}};
+    $script:speaker.Speak($words, 1) | Out-Null;
+    Write-Host $words -ForegroundColor $color
+    $script:speaker.WaitUntilDone(60000) | Out-Null;
+}
+
 function main() {    
+    $i = 0
+    foreach($line in $script:logo) {
+        Write-Host $line -ForegroundColor $script:colors[$i]
+        $i++
+        $i = $i % $script:colors.Count
+    }
+
+    Speak 0 0 "Power Tetris"
+    Speak 0 0 "press space key"
+
+    do {
+        $code = Get-GameEvent        
+    } until ($code -eq 32)
+
     Start-NewGame
     $startTime = Get-Date
 
