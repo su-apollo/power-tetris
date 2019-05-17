@@ -401,9 +401,9 @@ function Get-GameEvent() {
             # h
             72 { 37 }
             # j
-            74 { 38 }
+            74 { 40 }
             # k
-            75 { 40 }
+            75 { 38 }
             # l
             76 { 39 }            
             # do nothing
