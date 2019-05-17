@@ -398,6 +398,14 @@ function Get-GameEvent() {
             32 { 32 }
             # arrow keys
             {(37..40) -contains $_ } {$key.VirtualKeyCode} 
+            # h
+            72 { 37 }
+            # j
+            74 { 38 }
+            # k
+            75 { 40 }
+            # l
+            76 { 39 }            
             # do nothing
             default { 0 } 
         }
